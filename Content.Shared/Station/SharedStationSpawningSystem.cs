@@ -68,9 +68,14 @@ public abstract class SharedStationSpawningSystem : EntitySystem
     {
         string? name = null;
 
+        if (roleProto.CanCustomizeName)
+        {
+            name = loadout.EntityName;
+        }
+
         if (string.IsNullOrEmpty(name) && PrototypeManager.TryIndex(roleProto.NameDataset, out var nameData))
         {
-            name = _random.Pick(nameData.Values);
+            name = Loc.GetString(_random.Pick(nameData.Values));
         }
 
         if (!string.IsNullOrEmpty(name))
@@ -150,7 +155,7 @@ public abstract class SharedStationSpawningSystem : EntitySystem
 
             foreach (var (slotName, entProtos) in startingGear.Storage)
             {
-                if (entProtos == null || entProtos.Count == 0) 
+                if (entProtos == null || entProtos.Count == 0)
                     continue;
 
                 if (inventoryComp != null &&
@@ -173,5 +178,35 @@ public abstract class SharedStationSpawningSystem : EntitySystem
             var ev = new StartingGearEquippedEvent(entity);
             RaiseLocalEvent(entity, ref ev);
         }
+    }
+
+    /// <summary>
+    ///     Gets all the gear for a given slot when passed a loadout.
+    /// </summary>
+    /// <param name="loadout">The loadout to look through.</param>
+    /// <param name="slot">The slot that you want the clothing for.</param>
+    /// <returns>
+    ///     If there is a value for the given slot, it will return the proto id for that slot.
+    ///     If nothing was found, will return null
+    /// </returns>
+    public string? GetGearForSlot(RoleLoadout? loadout, string slot)
+    {
+        if (loadout == null)
+            return null;
+
+        foreach (var group in loadout.SelectedLoadouts)
+        {
+            foreach (var items in group.Value)
+            {
+                if (!PrototypeManager.TryIndex(items.Prototype, out var loadoutPrototype))
+                    return null;
+
+                var gear = ((IEquipmentLoadout) loadoutPrototype).GetGear(slot);
+                if (gear != string.Empty)
+                    return gear;
+            }
+        }
+
+        return null;
     }
 }
